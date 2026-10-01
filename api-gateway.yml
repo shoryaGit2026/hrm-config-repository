@@ -1,0 +1,54 @@
+server:
+  port:8808
+spring:
+  application:
+    name: api-gateway
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/auth-service
+
+  data:
+    redis:
+      host: localhost:6371
+  cloud:
+    gateway:
+      default-filter:
+        - name: RequestRateLimiter
+          args:
+            redis-rate-limiter.replenishRate: 5
+            redis-rate-limiter.burstCapacity: 1
+    spring:
+      cloud:
+        gateway:
+          routes:
+            - id: employee-service
+              uri: http://localhost:8096
+              predicates:
+                - Path=/employees/**
+
+            - id: leave-service
+              uri: http://localhost:8097
+              predicates:
+                - Path=/leaves/**
+            - id: auth-service
+              uri: http://localhost:8081
+              predicates:
+                - Path=/auth/**, /oauth2/**
+                filters:
+                -stripPrefix=1    
+  eureka:
+    client:
+      service-uri:
+        defaultzone: http://localhost:8761/eureka
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          include:
+            - health
+            - info
+            - prometheus
